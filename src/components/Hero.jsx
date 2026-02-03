@@ -70,7 +70,7 @@ const Hero = ({ onStart }) => {
                 </motion.div>
 
                 <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                    <button className="btn-primary" onClick={onStart} style={{ padding: '0.6rem 1.4rem', fontSize: '0.9rem' }}>Sign In</button>
+                    {/* Sign In button removed */}
                 </motion.div>
             </nav>
 
