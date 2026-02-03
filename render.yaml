@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: customer-feedback-sentiment-analysis
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run server
+    envVars:
+      - key: VITE_GEMINI_API_KEY
+        sync: false
+      - key: PORT
+        value: 10000
+    plan: free
