@@ -118,7 +118,7 @@ const geminiAnalyze = async (text, apiKey) => {
 
 // --- Main Export ---
 
-const SERVER_URL = 'http://localhost:5000/api';
+const SERVER_URL = '/api';
 
 export const analyzeText = async (text) => {
     // 1. Try Central Server First

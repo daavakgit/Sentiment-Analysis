@@ -8,7 +8,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/health');
+                const res = await fetch('/api/health');
                 if (res.ok) setServerStatus('online');
                 else setServerStatus('offline');
             } catch (e) {

@@ -6,12 +6,11 @@ import axios from 'axios';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
 
-// Mock database for now
+// Mock database
 const reviews = [
     {
         id: 1,
@@ -120,9 +119,15 @@ app.post('/api/analyze', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'running', timestamp: new Date() });
+    res.json({ status: 'running', timestamp: new Date(), platform: 'vercel' });
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 ZomaLens Backend running on http://localhost:${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`🚀 Local Server running on http://localhost:${PORT}`);
+    });
+}
+
+export default app;
