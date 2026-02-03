@@ -131,7 +131,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Catch-all route to serve the frontend (must be after API routes)
-app.get('*', (req, res) => {
+app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
