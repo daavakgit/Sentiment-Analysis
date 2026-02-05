@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, MessageSquare, TrendingUp, Settings, LogOut, UtensilsCrossed, Brain } from 'lucide-react';
 
-const Sidebar = ({ activeTab, setActiveTab }) => {
+const Sidebar = ({ activeTab, setActiveTab, userPhoto }) => {
     const [serverStatus, setServerStatus] = useState('offline');
 
     useEffect(() => {
@@ -48,19 +48,20 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 <div style={{
                     width: '42px',
                     height: '42px',
-                    background: 'var(--primary)',
                     borderRadius: '14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'white',
-                    boxShadow: '0 8px 16px rgba(var(--primary-rgb), 0.2)'
+                    overflow: 'hidden',
+                    boxShadow: '0 8px 16px rgba(0,0,0, 0.4)',
+                    border: '2px solid var(--primary)'
                 }}>
-                    <UtensilsCrossed size={22} />
+                    <img
+                        src={userPhoto}
+                        alt="Admin Logo"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
                 </div>
                 <div>
-                    <h2 style={{ fontSize: '1.3rem', fontWeight: '800', letterSpacing: '-0.5px' }}>ZomaLens</h2>
-                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: '600' }}>Analytics Hub</span>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: '800', letterSpacing: '-0.5px' }}>Admin</h2>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '600' }}>Dashboard</span>
                 </div>
             </motion.div>
 
@@ -106,29 +107,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 Server: <span style={{ color: serverStatus === 'online' ? 'var(--success)' : 'var(--danger)', fontWeight: '600' }}>{serverStatus.toUpperCase()}</span>
             </div>
 
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="user-profile"
-                style={{
-                    marginTop: 'auto',
-                    padding: '16px',
-                    borderRadius: '16px',
-                    background: 'rgba(255,255,255,0.02)',
-                    border: '1px solid var(--border-glass)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px'
-                }}
-            >
-                <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'linear-gradient(45deg, #222, #444)', border: '1px solid var(--border-glass)' }} />
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: '600' }}>Admin</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Store Manager</div>
-                </div>
-                <LogOut size={16} color="var(--text-muted)" style={{ cursor: 'pointer' }} />
-            </motion.div>
+
         </div>
     );
 };

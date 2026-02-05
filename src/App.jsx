@@ -12,7 +12,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 function App() {
   const [activeTab, setActiveTab] = useState('landing');
   const [reviewFilter, setReviewFilter] = useState('all');
-  const [reviews, setReviews] = useState(mockReviews);
+  const [userPhoto, setUserPhoto] = useState(
+    localStorage.getItem('userPhoto') || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+  );
+
+  const handlePhotoUpdate = (newPhoto) => {
+    setUserPhoto(newPhoto);
+    localStorage.setItem('userPhoto', newPhoto);
+  };
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -59,7 +66,7 @@ function App() {
             transition={{ duration: 0.5 }}
             className="layout"
           >
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} userPhoto={userPhoto} />
 
             <main className="main-content">
               <AnimatePresence mode="wait">
@@ -73,9 +80,10 @@ function App() {
                   {activeTab === 'dashboard' && <Dashboard reviews={reviews} onNavigate={handleNavigate} />}
                   {activeTab === 'reviews' && <ReviewList reviews={reviews} initialFilter={reviewFilter} onBack={() => handleNavigate('dashboard')} />}
                   {activeTab === 'live-ai' && <LiveAnalysis />}
-                  {activeTab === 'settings' && <Settings />}
+                  {activeTab === 'settings' && <Settings userPhoto={userPhoto} onUpdatePhoto={handlePhotoUpdate} />}
                   {activeTab === 'trends' && <Trends />}
                 </motion.div>
+
               </AnimatePresence>
             </main>
           </motion.div>

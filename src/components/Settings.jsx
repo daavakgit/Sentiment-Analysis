@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     Key, Save, Trash2, ExternalLink, ShieldAlert, Cpu, Bell,
-    Palette, Zap, Database, Globe, Sliders, Check, ShieldCheck
+    Palette, Zap, Database, Globe, Sliders, Check, ShieldCheck, UserCircle
 } from 'lucide-react';
 
-const Settings = () => {
+const Settings = ({ userPhoto, onUpdatePhoto }) => {
     const [apiKey, setApiKey] = useState('');
     const [isSaved, setIsSaved] = useState(false);
 
@@ -40,11 +40,23 @@ const Settings = () => {
     };
 
     const sections = [
+        { id: 'profile', label: 'Admin Profile', icon: UserCircle },
         { id: 'ai', label: 'AI Engine', icon: Cpu },
         { id: 'alerts', label: 'Notifications', icon: Bell },
         { id: 'ui', label: 'Appearance', icon: Palette },
         { id: 'data', label: 'Data Lab', icon: Database },
     ];
+
+    const handlePhotoUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                onUpdatePhoto(reader.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
@@ -83,6 +95,47 @@ const Settings = () => {
 
                 {/* Content Area */}
                 <div className="glass-panel" style={{ padding: '2rem', borderRadius: '24px', minHeight: '500px' }}>
+
+                    {/* PROFILE SECTION */}
+                    {activeSection === 'profile' && (
+                        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+                            <SectionHeader
+                                icon={UserCircle} color="#3b82f6"
+                                title="Admin Profile"
+                                desc="Manage your store manager identity and branding."
+                            />
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2rem' }}>
+                                <div style={{
+                                    width: '100px', height: '100px', borderRadius: '24px', overflow: 'hidden',
+                                    border: '4px solid var(--primary)',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+                                }}>
+                                    <img
+                                        src={userPhoto}
+                                        alt="Current Admin"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                </div>
+                                <div>
+                                    <h3 style={{ marginBottom: '0.5rem' }}>Store Manager Photo</h3>
+                                    <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                                        Upload a new photo to update your admin dashboard logo. <br />
+                                        Recommended size: 200x200px.
+                                    </p>
+                                    <label className="btn-primary" style={{ display: 'inline-block', cursor: 'pointer' }}>
+                                        Upload Photo
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handlePhotoUpload}
+                                            style={{ display: 'none' }}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
 
                     {/* AI ENGINE SECTION */}
                     {activeSection === 'ai' && (

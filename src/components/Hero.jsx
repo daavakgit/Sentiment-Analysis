@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, useSpring, AnimatePresence, useMotionValue, useMotionTemplate } from 'framer-motion';
+import Background3D from './Background3D';
 import { ArrowRight, Activity, Brain, Zap, Star, MessageCircle, MousePointer2 } from 'lucide-react';
 
 const Hero = ({ onStart }) => {
@@ -28,6 +29,9 @@ const Hero = ({ onStart }) => {
             padding: '0 2rem',
             backgroundColor: 'var(--bg-dark)'
         }}>
+            {/* Dynamic Background */}
+            <Background3D />
+
             {/* Glow Orbs */}
             <motion.div
                 animate={{
@@ -40,6 +44,21 @@ const Hero = ({ onStart }) => {
                     width: '40vw', height: '40vw',
                     background: 'radial-gradient(circle, rgba(203, 32, 45, 0.2) 0%, rgba(0,0,0,0) 70%)',
                     filter: 'blur(100px)', zIndex: 0
+                }}
+            />
+
+            {/* Secondary Glow Orb */}
+            <motion.div
+                animate={{
+                    x: mousePosition.x * 30,
+                    y: mousePosition.y * 30
+                }}
+                transition={{ type: 'spring', damping: 60, stiffness: 80 }}
+                style={{
+                    position: 'absolute', bottom: '10%', right: '5%',
+                    width: '30vw', height: '30vw',
+                    background: 'radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, rgba(0,0,0,0) 70%)',
+                    filter: 'blur(80px)', zIndex: 0
                 }}
             />
 
@@ -69,9 +88,7 @@ const Hero = ({ onStart }) => {
                     <span style={{ letterSpacing: '-1px' }}>ZomaLens</span>
                 </motion.div>
 
-                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-                    {/* Sign In button removed */}
-                </motion.div>
+                {/* No Sign In Button here */}
             </nav>
 
             {/* Main Hero Section */}
@@ -115,7 +132,8 @@ const Hero = ({ onStart }) => {
                                 backgroundSize: '200% auto',
                                 WebkitBackgroundClip: 'text',
                                 WebkitTextFillColor: 'transparent',
-                                animation: 'shine 4s linear infinite'
+                                animation: 'shine 4s linear infinite',
+                                display: 'inline-block'
                             }}
                         >
                             voice of customers.
@@ -143,29 +161,32 @@ const Hero = ({ onStart }) => {
                     </MagneticButton>
                 </motion.div>
 
-                {/* Feature Highlights */}
+                {/* Feature Highlights with Tilt */}
                 <div style={{
                     display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
                     gap: '2rem', marginTop: '8rem', width: '100%'
                 }}>
-                    <InfoCard
-                        icon={Brain}
-                        title="Operational Intelligence"
-                        desc="Deep-dive into hygiene, taste, and service categories automatically."
-                        index={0}
-                    />
-                    <InfoCard
-                        icon={Activity}
-                        title="Volatility Tracking"
-                        desc="Real-time sentiment heatmaps to track service consistency."
-                        index={1}
-                    />
-                    <InfoCard
-                        icon={Zap}
-                        title="Zero-Latency NLP"
-                        desc="Proprietary engine built for high-scale feedback loops."
-                        index={2}
-                    />
+                    <TiltCard index={0}>
+                        <InfoCardContent
+                            icon={Brain}
+                            title="Operational Intelligence"
+                            desc="Deep-dive into hygiene, taste, and service categories automatically."
+                        />
+                    </TiltCard>
+                    <TiltCard index={1}>
+                        <InfoCardContent
+                            icon={Activity}
+                            title="Volatility Tracking"
+                            desc="Real-time sentiment heatmaps to track service consistency."
+                        />
+                    </TiltCard>
+                    <TiltCard index={2}>
+                        <InfoCardContent
+                            icon={Zap}
+                            title="Zero-Latency NLP"
+                            desc="Proprietary engine built for high-scale feedback loops."
+                        />
+                    </TiltCard>
                 </div>
             </main>
 
@@ -185,10 +206,17 @@ const Hero = ({ onStart }) => {
         @keyframes shine {
           to { background-position: 200% center; }
         }
+        @keyframes aurora {
+          from { background-position: 50% 50%, 50% 50%; }
+          to { background-position: 350% 50%, 350% 50%; }
+        }
       `}} />
         </div>
     );
 };
+
+// Aurora Background Component Removed in favor of Background3D
+
 
 // Text Reveal Component
 const RevealText = ({ text, delay }) => {
@@ -205,6 +233,74 @@ const RevealText = ({ text, delay }) => {
         </span>
     );
 };
+
+// 3D Tilt Card
+const TiltCard = ({ children, index }) => {
+    const x = useMotionValue(0);
+    const y = useMotionValue(0);
+    const rotateX = useTransform(y, [-100, 100], [15, -15]);
+    const rotateY = useTransform(x, [-100, 100], [-15, 15]);
+
+    function handleMouseMove(event) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const width = rect.width;
+        const height = rect.height;
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const xPct = mouseX / width - 0.5;
+        const yPct = mouseY / height - 0.5;
+        x.set(xPct * 200);
+        y.set(yPct * 200);
+    }
+
+    function handleMouseLeave() {
+        x.set(0);
+        y.set(0);
+    }
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.2 + (index * 0.2), duration: 0.8 }}
+            style={{ perspective: 1000 }}
+        >
+            <motion.div
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                style={{
+                    rotateX,
+                    rotateY,
+                    transformStyle: "preserve-3d",
+                }}
+            >
+                {children}
+            </motion.div>
+        </motion.div>
+    );
+};
+
+const InfoCardContent = ({ icon: Icon, title, desc }) => {
+    return (
+        <div
+            className="glass-panel"
+            style={{
+                padding: '2.5rem', borderRadius: '32px', textAlign: 'left',
+                cursor: 'default', transition: 'background-color 0.3s',
+                height: '100%',
+                background: 'rgba(25, 25, 28, 0.6)', // Slightly darker for contrast
+                transform: 'translateZ(20px)', // pop out effect
+            }}
+        >
+            <div style={{ color: 'var(--primary)', marginBottom: '1.5rem', transform: 'translateZ(30px)' }}>
+                <Icon size={32} />
+            </div>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '1rem', transform: 'translateZ(25px)' }}>{title}</h3>
+            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem', transform: 'translateZ(20px)' }}>{desc}</p>
+        </div>
+    );
+};
+
 
 // Magnetic Button Component
 const MagneticButton = ({ children, onClick }) => {
@@ -228,11 +324,14 @@ const MagneticButton = ({ children, onClick }) => {
             onMouseLeave={handleMouseLeave}
             animate={{ x: position.x, y: position.y }}
             transition={{ type: 'spring', damping: 20, stiffness: 300, mass: 0.5 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onClick}
             className="btn-primary"
             style={{
                 padding: '1.2rem 3rem', fontSize: '1.1rem', borderRadius: '100px',
-                display: 'flex', alignItems: 'center', gap: '12px'
+                display: 'flex', alignItems: 'center', gap: '12px',
+                boxShadow: '0 0 20px rgba(203, 32, 45, 0.4)'
             }}
         >
             {children}
@@ -240,37 +339,16 @@ const MagneticButton = ({ children, onClick }) => {
     );
 };
 
-const InfoCard = ({ icon: Icon, title, desc, index }) => {
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2.2 + (index * 0.2), duration: 0.8 }}
-            whileHover={{ y: -10, backgroundColor: 'rgba(255,255,255,0.05)' }}
-            className="glass-panel"
-            style={{
-                padding: '2.5rem', borderRadius: '32px', textAlign: 'left',
-                cursor: 'default', transition: 'background-color 0.3s'
-            }}
-        >
-            <div style={{ color: 'var(--primary)', marginBottom: '1.5rem' }}>
-                <Icon size={32} />
-            </div>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: '700', marginBottom: '1rem' }}>{title}</h3>
-            <p style={{ color: 'var(--text-muted)', lineHeight: '1.6', fontSize: '1rem' }}>{desc}</p>
-        </motion.div>
-    );
-};
-
 const FloatingIcon = ({ delay, x, y, icon: Icon, color, size }) => {
     return (
         <motion.div
             animate={{
-                y: [0, -30, 0],
-                rotate: [0, 10, -10, 0],
-                opacity: [0.1, 0.3, 0.1]
+                y: [0, -40, 0],
+                rotate: [0, 15, -15, 0],
+                opacity: [0.1, 0.4, 0.1],
+                scale: [1, 1.1, 1]
             }}
-            transition={{ repeat: Infinity, duration: 6, ease: "easeInOut", delay }}
+            transition={{ repeat: Infinity, duration: 8, ease: "easeInOut", delay }}
             style={{ position: 'absolute', left: x, top: y, color, zIndex: 1, pointerEvents: 'none' }}
         >
             <Icon size={size} />
