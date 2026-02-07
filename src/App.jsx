@@ -8,13 +8,26 @@ import Settings from './components/Settings';
 import Trends from './components/Trends'; // Import Trends
 import { mockReviews } from './data/mockData';
 import { AnimatePresence, motion } from 'framer-motion';
+import Preloader from './components/Preloader';
+
 
 function App() {
+  const [reviews, setReviews] = useState(mockReviews);
   const [activeTab, setActiveTab] = useState('landing');
   const [reviewFilter, setReviewFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
   const [userPhoto, setUserPhoto] = useState(
     localStorage.getItem('userPhoto') || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
   );
+
+  useEffect(() => {
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
 
   const handlePhotoUpdate = (newPhoto) => {
     setUserPhoto(newPhoto);
@@ -47,7 +60,9 @@ function App() {
       <div className="grid-bg" />
 
       <AnimatePresence mode="wait">
-        {activeTab === 'landing' ? (
+        {isLoading ? (
+          <Preloader key="loader" />
+        ) : activeTab === 'landing' ? (
           <motion.div
             key="landing"
             initial={{ opacity: 0 }}
@@ -89,6 +104,7 @@ function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
     </>
   );
 }
