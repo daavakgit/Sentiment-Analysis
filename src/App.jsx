@@ -1,79 +1,106 @@
 import React, { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import ReviewList from './components/ReviewList';
 import LiveAnalysis from './components/LiveAnalysis';
 import Hero from './components/Hero';
 import Settings from './components/Settings';
-import Trends from './components/Trends'; // Import Trends
-import { mockReviews } from './data/mockData';
-import { AnimatePresence, motion } from 'framer-motion';
+import Trends from './components/Trends';
+import Login from './components/Login';
 import Preloader from './components/Preloader';
 
-
 function App() {
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
   const [activeTab, setActiveTab] = useState('landing');
   const [reviewFilter, setReviewFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [userPhoto, setUserPhoto] = useState(
-    localStorage.getItem('userPhoto') || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const [userSettings, setUserSettings] = useState({
+    userPhoto: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80",
+    storeName: "The Spicy Spoon",
+    adminName: "Vikram Malhotra",
+    theme: 'dark',
+    aiMode: 'advanced',
+    notifications: true
+  });
 
   useEffect(() => {
-    // Simulate loading
+    const storedAuth = localStorage.getItem('authToken');
+    if (storedAuth) {
+      setIsAuthenticated(true);
+      setActiveTab('dashboard');
+    }
+
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 2500);
+
     return () => clearTimeout(timer);
   }, []);
 
-
-  const handlePhotoUpdate = async (newPhoto) => {
-    setUserPhoto(newPhoto);
-    try {
-      await fetch('/api/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userPhoto: newPhoto })
-      });
-    } catch (e) {
-      console.error("Failed to save photo to DB:", e);
-    }
-  };
-
   useEffect(() => {
-    // Fetch Reviews
-    const fetchReviews = async () => {
+    if (!isAuthenticated) return;
+
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/reviews');
-        if (res.ok) {
-          const data = await res.json();
+        const [reviewsRes, settingsRes] = await Promise.all([
+          fetch('/api/reviews'),
+          fetch('/api/settings')
+        ]);
+
+        if (reviewsRes.ok) {
+          const data = await reviewsRes.json();
           setReviews(data);
         }
-      } catch (e) {
-        console.log("Using local mock data as server is unreachable.");
-      }
-    };
 
-    // Fetch Settings (Photo)
-    const fetchSettings = async () => {
-      try {
-        const res = await fetch('/api/settings');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.userPhoto) {
-            setUserPhoto(data.userPhoto);
+        if (settingsRes.ok) {
+          const data = await settingsRes.json();
+          if (data && Object.keys(data).length > 0) {
+            setUserSettings(prev => ({ ...prev, ...data }));
           }
         }
       } catch (e) {
-        console.log("Failed to fetch settings from server.");
+        console.error("Data fetch failed:", e);
       }
     };
 
-    fetchReviews();
-    fetchSettings();
-  }, []);
+    fetchData();
+  }, [isAuthenticated, activeTab]);
+
+  const handleLogin = (user) => {
+    setIsAuthenticated(true);
+    localStorage.setItem('authToken', 'true');
+    setActiveTab('dashboard');
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('authToken');
+    setActiveTab('landing');
+  };
+
+  const handleUpdateSettings = async (updates) => {
+    // Optimistic update
+    setUserSettings(prev => ({ ...prev, ...updates }));
+
+    // Send to backend
+    const response = await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save settings to database");
+    }
+
+    const savedData = await response.json();
+    // Update with confirmed data from server
+    setUserSettings(prev => ({ ...prev, ...savedData }));
+    return savedData;
+  };
 
   const handleNavigate = (tab, filter = 'all') => {
     setReviewFilter(filter);
@@ -85,33 +112,45 @@ function App() {
       <div className="noise-overlay" />
       <div className="grid-bg" />
 
-      <AnimatePresence mode="popLayout">
-        {isLoading && (
-          <Preloader key="loader" />
-        )}
+      <AnimatePresence mode="wait">
 
-        {!isLoading && activeTab === 'landing' && (
-          <motion.div
-            key="landing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.6 }}
-          >
-            <Hero onStart={() => setActiveTab('dashboard')} />
+        {isLoading && (
+          <motion.div key="preloader" exit={{ opacity: 0 }} transition={{ duration: 0.5 }}>
+            <Preloader />
           </motion.div>
         )}
 
-        {!isLoading && activeTab !== 'landing' && (
+        {!isLoading && !isAuthenticated && (
           <motion.div
-            key="app"
+            key="auth-flow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {activeTab === 'landing' ? (
+              <Hero onStart={() => setActiveTab('login')} />
+            ) : (
+              <Login onLogin={handleLogin} />
+            )}
+          </motion.div>
+        )}
+
+        {!isLoading && isAuthenticated && (
+          <motion.div
+            key="dashboard-layout"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
             className="layout"
           >
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} userPhoto={userPhoto} />
+            <Sidebar
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              userPhoto={userSettings.userPhoto}
+              onLogout={handleLogout}
+            />
 
             <main className="main-content">
               <AnimatePresence mode="wait">
@@ -121,20 +160,20 @@ function App() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.3 }}
+                  style={{ width: '100%', height: '100%' }}
                 >
-                  {activeTab === 'dashboard' && <Dashboard reviews={reviews || []} onNavigate={handleNavigate} />}
-                  {activeTab === 'reviews' && <ReviewList reviews={reviews || []} initialFilter={reviewFilter} onBack={() => handleNavigate('dashboard')} />}
+                  {activeTab === 'dashboard' && <Dashboard reviews={reviews} onNavigate={handleNavigate} />}
+                  {activeTab === 'reviews' && <ReviewList reviews={reviews} initialFilter={reviewFilter} onBack={() => handleNavigate('dashboard')} />}
                   {activeTab === 'live-ai' && <LiveAnalysis />}
-                  {activeTab === 'settings' && <Settings userPhoto={userPhoto} onUpdatePhoto={handlePhotoUpdate} />}
-                  {activeTab === 'trends' && <Trends />}
+                  {activeTab === 'settings' && <Settings settings={userSettings} onUpdate={handleUpdateSettings} />}
+                  {activeTab === 'trends' && <Trends reviews={reviews} />}
                 </motion.div>
               </AnimatePresence>
             </main>
           </motion.div>
         )}
+
       </AnimatePresence>
-
-
     </>
   );
 }

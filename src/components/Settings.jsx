@@ -1,42 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    Key, Save, Trash2, ExternalLink, ShieldAlert, Cpu, Bell,
-    Palette, Zap, Database, Globe, Sliders, Check, ShieldCheck, UserCircle
+    Save, Cpu, Bell, Palette, Zap, Database, Check, ShieldCheck, UserCircle, Store, Mail, Upload, Loader
 } from 'lucide-react';
 
-const Settings = ({ userPhoto, onUpdatePhoto }) => {
+const Settings = ({ settings, onUpdate }) => {
+    const [localSettings, setLocalSettings] = useState(settings);
     const [apiKey, setApiKey] = useState('');
     const [isSaved, setIsSaved] = useState(false);
-
-    // New States for expanded settings
-    const [aiMode, setAiMode] = useState('advanced'); // eco, advanced
-    const [alertsEnabled, setAlertsEnabled] = useState(true);
-    const [threshold, setThreshold] = useState(0.4);
-    const [uiBlur, setUiBlur] = useState(true);
-    const [autoReply, setAutoReply] = useState(false);
-    const [activeSection, setActiveSection] = useState('ai');
+    const [isSaving, setIsSaving] = useState(false);
+    const [activeSection, setActiveSection] = useState('profile');
 
     useEffect(() => {
-        const savedKey = localStorage.getItem('GEMINI_API_KEY') || import.meta.env.VITE_GEMINI_API_KEY;
-        if (savedKey) {
-            setApiKey(savedKey);
-            setIsSaved(true);
-        }
-    }, []);
+        setLocalSettings(settings);
+        const savedKey = localStorage.getItem('GEMINI_API_KEY') || "";
+        setApiKey(savedKey);
+    }, [settings]);
 
-    const handleSave = () => {
-        if (apiKey.trim()) {
-            localStorage.setItem('GEMINI_API_KEY', apiKey);
+    const handleSaveAll = async () => {
+        setIsSaving(true);
+        try {
+            await onUpdate(localSettings);
             setIsSaved(true);
-            alert('Settings synchronized successfully!');
+            setTimeout(() => setIsSaved(false), 2000);
+        } catch (e) {
+            alert("Failed to save settings");
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleClear = () => {
-        localStorage.removeItem('GEMINI_API_KEY');
-        setApiKey('');
-        setIsSaved(false);
+    const handleApiKeySave = () => {
+        if (apiKey.trim()) {
+            localStorage.setItem('GEMINI_API_KEY', apiKey);
+            alert('AI Key saved locally for browser fallback.');
+        }
+    };
+
+    const handlePhotoUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file size (max 2MB for DB storage)
+        if (file.size > 2 * 1024 * 1024) {
+            alert("Image too large. Please use an image under 2MB.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const newPhoto = reader.result;
+            // Update local state immediately for preview
+            setLocalSettings(prev => ({ ...prev, userPhoto: newPhoto }));
+
+            // Auto-save photo to database immediately
+            setIsSaving(true);
+            try {
+                await onUpdate({ userPhoto: newPhoto });
+                setIsSaved(true);
+                setTimeout(() => setIsSaved(false), 2000);
+            } catch (err) {
+                console.error("Photo save failed:", err);
+                alert("Failed to save photo. Try a smaller image.");
+            } finally {
+                setIsSaving(false);
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const sections = [
@@ -47,23 +77,22 @@ const Settings = ({ userPhoto, onUpdatePhoto }) => {
         { id: 'data', label: 'Data Lab', icon: Database },
     ];
 
-    const handlePhotoUpload = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                onUpdatePhoto(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '1000px', margin: '0 auto', paddingBottom: '3rem' }}>
             {/* Header */}
-            <div>
-                <h1 className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '0.5rem' }}>System Settings</h1>
-                <p style={{ color: 'var(--text-muted)' }}>Tailor the ZomaLens intelligence and interface to your workflow.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                    <h1 className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '0.5rem' }}>System Settings</h1>
+                    <p style={{ color: 'var(--text-muted)' }}>Configure the ZomaLens platform and admin identity.</p>
+                </div>
+                <button
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: isSaving ? 0.7 : 1 }}
+                >
+                    {isSaving ? <Loader className="spin" size={18} /> : isSaved ? <><Check size={18} /> Saved!</> : <><Save size={18} /> Save All</>}
+                </button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '2rem' }}>
@@ -102,36 +131,80 @@ const Settings = ({ userPhoto, onUpdatePhoto }) => {
                             <SectionHeader
                                 icon={UserCircle} color="#3b82f6"
                                 title="Admin Profile"
-                                desc="Manage your store manager identity and branding."
+                                desc="Manage store manager identity and branding. Photo is saved instantly on upload."
                             />
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', marginBottom: '2rem' }}>
-                                <div style={{
-                                    width: '100px', height: '100px', borderRadius: '24px', overflow: 'hidden',
-                                    border: '4px solid var(--primary)',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                                }}>
-                                    <img
-                                        src={userPhoto}
-                                        alt="Current Admin"
-                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                    />
-                                </div>
-                                <div>
-                                    <h3 style={{ marginBottom: '0.5rem' }}>Store Manager Photo</h3>
-                                    <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                                        Upload a new photo to update your admin dashboard logo. <br />
-                                        Recommended size: 200x200px.
-                                    </p>
-                                    <label className="btn-primary" style={{ display: 'inline-block', cursor: 'pointer' }}>
-                                        Upload Photo
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handlePhotoUpload}
-                                            style={{ display: 'none' }}
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginBottom: '3rem' }}>
+                                {/* Photo Upload Box */}
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{
+                                        width: '140px', height: '140px', borderRadius: '24px', overflow: 'hidden',
+                                        border: '4px solid var(--primary)',
+                                        boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+                                    }}>
+                                        <img
+                                            src={localSettings.userPhoto}
+                                            alt="Admin"
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         />
+                                    </div>
+                                    <label style={{
+                                        position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)',
+                                        background: 'var(--primary)', color: 'white',
+                                        fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px',
+                                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+                                        boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                                    }}>
+                                        <Upload size={14} /> Upload
+                                        <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
                                     </label>
+                                    {isSaving && (
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <Loader className="spin" size={24} color="white" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Other Fields */}
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div>
+                                            <label style={labelStyle}>Store Name</label>
+                                            <div style={{ position: 'relative', marginTop: '0.5rem' }}>
+                                                <Store size={16} style={iconInputStyle} />
+                                                <input
+                                                    type="text"
+                                                    style={inputStyle}
+                                                    value={localSettings.storeName || ''}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, storeName: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Admin Name</label>
+                                            <div style={{ position: 'relative', marginTop: '0.5rem' }}>
+                                                <UserCircle size={16} style={iconInputStyle} />
+                                                <input
+                                                    type="text"
+                                                    style={inputStyle}
+                                                    value={localSettings.adminName || ''}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, adminName: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2' }}>
+                                            <label style={labelStyle}>Contact Email</label>
+                                            <div style={{ position: 'relative', marginTop: '0.5rem' }}>
+                                                <Mail size={16} style={iconInputStyle} />
+                                                <input
+                                                    type="email"
+                                                    style={inputStyle}
+                                                    value={localSettings.adminEmail || ''}
+                                                    onChange={(e) => setLocalSettings({ ...localSettings, adminEmail: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
@@ -142,48 +215,45 @@ const Settings = ({ userPhoto, onUpdatePhoto }) => {
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                             <SectionHeader
                                 icon={Cpu} color="#f59e0b"
-                                title="AI Core Configuration"
-                                desc="Manage how large language models process your reviews."
+                                title="AI Engine"
+                                desc="Configure analysis logic and API priorities."
                             />
 
                             <div style={{ marginBottom: '2.5rem' }}>
-                                <label style={labelStyle}>Deployment Mode</label>
+                                <label style={labelStyle}>Analysis Mode</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
                                     <OptionCard
-                                        active={aiMode === 'eco'}
-                                        onClick={() => setAiMode('eco')}
-                                        title="Eco Mode"
-                                        desc="Local browser-based analysis. Low latency, zero tokens."
+                                        active={localSettings.aiMode === 'eco'}
+                                        onClick={() => setLocalSettings({ ...localSettings, aiMode: 'eco' })}
+                                        title="Eco Model"
+                                        desc="Uses local sentiment libraries. Fast, works offline."
                                         icon={Zap}
                                     />
                                     <OptionCard
-                                        active={aiMode === 'advanced'}
-                                        onClick={() => setAiMode('advanced')}
-                                        title="Advanced"
-                                        desc="Gemini 1.5 Pro. High reasoning, sarcasm detection."
+                                        active={localSettings.aiMode === 'advanced'}
+                                        onClick={() => setLocalSettings({ ...localSettings, aiMode: 'advanced' })}
+                                        title="Advanced LLM"
+                                        desc="Uses Gemini. Recognizes sarcasm and emotions."
                                         icon={ShieldCheck}
                                     />
                                 </div>
                             </div>
 
-                            <div style={{ marginBottom: '2rem' }}>
-                                <label style={labelStyle}>API Architecture (Serverless)</label>
+                            <div>
+                                <label style={labelStyle}>Browser Fallback API Key</label>
                                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                                     <input
                                         type="password"
                                         value={apiKey}
                                         onChange={(e) => setApiKey(e.target.value)}
                                         placeholder="Enter Gemini API Key..."
-                                        style={inputStyle}
+                                        style={inputStyleRaw}
                                     />
-                                    {isSaved ? (
-                                        <button onClick={handleClear} className="btn-primary" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid var(--danger)' }}>
-                                            Reset
-                                        </button>
-                                    ) : (
-                                        <button onClick={handleSave} className="btn-primary">Save</button>
-                                    )}
+                                    <button onClick={handleApiKeySave} className="btn-primary" style={{ whiteSpace: 'nowrap' }}>Update Key</button>
                                 </div>
+                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.8rem' }}>
+                                    This key is used if the central server is unreachable.
+                                </p>
                             </div>
                         </motion.div>
                     )}
@@ -193,32 +263,16 @@ const Settings = ({ userPhoto, onUpdatePhoto }) => {
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                             <SectionHeader
                                 icon={Bell} color="#3b82f6"
-                                title="Real-time Alerts"
-                                desc="Stay ahead of critical customer dissatisfaction."
+                                title="Notifications"
+                                desc="Get alerted on critical customer feedback."
                             />
 
                             <ToggleRow
-                                title="Push Notifications"
-                                desc="Receive browser alerts when a critical issue is detected."
-                                value={alertsEnabled}
-                                onChange={setAlertsEnabled}
+                                title="Instant Push Alerts"
+                                desc="Notify when a very negative review is detected."
+                                value={localSettings.notifications}
+                                onChange={(val) => setLocalSettings({ ...localSettings, notifications: val })}
                             />
-
-                            <div style={{ marginTop: '2.5rem' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                    <label style={labelStyle}>Crisis Sensitivity Threshold</label>
-                                    <span style={{ color: 'var(--primary)', fontWeight: 'bold' }}>{Math.round(threshold * 100)}%</span>
-                                </div>
-                                <input
-                                    type="range" min="0" max="1" step="0.1"
-                                    value={threshold}
-                                    onChange={(e) => setThreshold(e.target.value)}
-                                    style={{ width: '100%', accentColor: 'var(--primary)' }}
-                                />
-                                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>
-                                    Notifications will trigger for scores below this level (Negative sentiment intensity).
-                                </p>
-                            </div>
                         </motion.div>
                     )}
 
@@ -227,23 +281,26 @@ const Settings = ({ userPhoto, onUpdatePhoto }) => {
                         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
                             <SectionHeader
                                 icon={Palette} color="#10b981"
-                                title="Visual Interface"
-                                desc="Optimize the dashboard for your system's performance."
+                                title="Appearance"
+                                desc="Customize your dashboard theme."
                             />
 
-                            <ToggleRow
-                                title="Glassmorphism Effects"
-                                desc="Enable high-quality background blurs and noise overlays."
-                                value={uiBlur}
-                                onChange={setUiBlur}
-                            />
-
-                            <ToggleRow
-                                title="Auto-Reply Suggestions"
-                                desc="Show AI-generated response drafts in the review list."
-                                value={autoReply}
-                                onChange={setAutoReply}
-                            />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                <OptionCard
+                                    active={localSettings.theme === 'dark'}
+                                    onClick={() => setLocalSettings({ ...localSettings, theme: 'dark' })}
+                                    title="Midnight Pro"
+                                    desc="Dark glassmorphism theme with neon accents."
+                                    icon={Palette}
+                                />
+                                <OptionCard
+                                    active={localSettings.theme === 'light'}
+                                    onClick={() => alert('Light mode is coming soon in v2.0!')}
+                                    title="Solaris"
+                                    desc="Professional light mode. (Coming Soon)"
+                                    icon={Zap}
+                                />
+                            </div>
                         </motion.div>
                     )}
 
@@ -253,16 +310,24 @@ const Settings = ({ userPhoto, onUpdatePhoto }) => {
                             <SectionHeader
                                 icon={Database} color="#8b5cf6"
                                 title="Data Laboratory"
-                                desc="Export findings and manage your analysis history."
+                                desc="Export and manage history."
                             />
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '2rem' }}>
-                                <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)' }}>
-                                    Export CSV Report
-                                </button>
-                                <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)' }}>
-                                    Clear Local Cache
-                                </button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div style={dataCardStyle}>
+                                    <div>
+                                        <h4>Export Analysis</h4>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Generate a CSV report of all sentiments and keywords.</p>
+                                    </div>
+                                    <button className="btn-primary" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-glass)' }}>Export CSV</button>
+                                </div>
+                                <div style={dataCardStyle}>
+                                    <div>
+                                        <h4 style={{ color: 'var(--danger)' }}>Wipe History</h4>
+                                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Permanently delete all stored reviews from database.</p>
+                                    </div>
+                                    <button className="btn-primary" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>Purge Data</button>
+                                </div>
                             </div>
                         </motion.div>
                     )}
@@ -327,11 +392,24 @@ const ToggleRow = ({ title, desc, value, onChange }) => (
     </div>
 );
 
-const labelStyle = { display: 'block', fontSize: '0.9rem', fontWeight: '700', color: '#eee', textTransform: 'uppercase', letterSpacing: '1px' };
+const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' };
 
 const inputStyle = {
-    flex: 1, background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-glass)',
-    borderRadius: '8px', padding: '12px', color: 'white', outline: 'none', fontFamily: 'monospace'
+    width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(0,0,0,0.2)',
+    border: '1px solid var(--border-glass)', borderRadius: '10px', color: 'white', outline: 'none'
+};
+
+const inputStyleRaw = {
+    flex: 1, background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-glass)',
+    borderRadius: '10px', padding: '12px', color: 'white', outline: 'none'
+};
+
+const iconInputStyle = { position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' };
+
+const dataCardStyle = {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '1.2rem', borderRadius: '12px', background: 'rgba(255,255,255,0.03)',
+    border: '1px solid var(--border-glass)'
 };
 
 export default Settings;

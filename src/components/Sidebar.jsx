@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutDashboard, MessageSquare, TrendingUp, Settings, LogOut, UtensilsCrossed, Brain } from 'lucide-react';
 
-const Sidebar = ({ activeTab, setActiveTab, userPhoto }) => {
+const Sidebar = ({ activeTab, setActiveTab, userPhoto, onLogout }) => {
     const [serverStatus, setServerStatus] = useState('offline');
 
     useEffect(() => {
@@ -102,12 +102,38 @@ const Sidebar = ({ activeTab, setActiveTab, userPhoto }) => {
                 })}
             </nav>
 
-            <div style={{ padding: '8px 16px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: serverStatus === 'online' ? 'var(--success)' : 'var(--danger)', boxShadow: serverStatus === 'online' ? '0 0 10px var(--success)' : 'none' }} />
-                Server: <span style={{ color: serverStatus === 'online' ? 'var(--success)' : 'var(--danger)', fontWeight: '600' }}>{serverStatus.toUpperCase()}</span>
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button
+                    onClick={onLogout}
+                    style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        border: '1px solid rgba(239, 68, 68, 0.2)',
+                        borderRadius: '12px',
+                        color: 'var(--danger)',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        transition: '0.3s'
+                    }}
+                >
+                    <LogOut size={18} /> Sign Out
+                </button>
+
+                <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: serverStatus === 'online' ? 'var(--success)' : 'var(--danger)',
+                        boxShadow: serverStatus === 'online' ? '0 0 10px var(--success)' : 'none'
+                    }} />
+                    Server: <span style={{ color: serverStatus === 'online' ? 'var(--success)' : 'var(--danger)', fontWeight: '600' }}>{serverStatus.toUpperCase()}</span>
+                </div>
             </div>
-
-
         </div>
     );
 };
