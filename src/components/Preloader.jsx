@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Utensils, Pizza, Burger, Coffee, Soup } from 'lucide-react';
+import { Utensils, Pizza, Sandwich, Coffee, Soup } from 'lucide-react';
 
 const Preloader = () => {
     const icons = [
         { Icon: Pizza, color: '#f59e0b', delay: 0, x: -60, y: -60 },
-        { Icon: Burger, color: '#ef4444', delay: 0.2, x: 60, y: -60 },
+        { Icon: Sandwich, color: '#ef4444', delay: 0.2, x: 60, y: -60 },
         { Icon: Coffee, color: '#92400e', delay: 0.4, x: 60, y: 60 },
         { Icon: Soup, color: '#10b981', delay: 0.6, x: -60, y: 60 },
         { Icon: Utensils, color: '#fff', delay: 0.3, x: 0, y: 0, size: 48 },
