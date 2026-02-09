@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import axios from 'axios';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,8 +19,32 @@ app.use(express.json());
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, '../dist')));
 
-// Mock database
-const reviews = [
+// MongoDB Connection
+const MONGODB_URI = process.env.MONGODB_URI;
+
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ Connected to MongoDB'))
+    .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// Review Schema
+const reviewSchema = new mongoose.Schema({
+    id: Number,
+    customerName: String,
+    date: String,
+    time: String,
+    rating: Number,
+    text: String,
+    sentiment: String,
+    score: Number,
+    orderItems: [String],
+    categories: [String],
+    keywords: [String]
+});
+
+const Review = mongoose.model('Review', reviewSchema);
+
+// Mock database (for seeding)
+const mockReviews = [
     {
         id: 1,
         customerName: "Rahul Sharma",
@@ -74,9 +99,29 @@ const reviews = [
     }
 ];
 
+// Seed Database if empty
+const seedDatabase = async () => {
+    try {
+        const count = await Review.countDocuments();
+        if (count === 0) {
+            await Review.insertMany(mockReviews);
+            console.log('🌱 Database seeded with mock reviews');
+        }
+    } catch (err) {
+        console.error('Error seeding database:', err);
+    }
+};
+
+mongoose.connection.once('open', seedDatabase);
+
 // Routes
-app.get('/api/reviews', (req, res) => {
-    res.json(reviews);
+app.get('/api/reviews', async (req, res) => {
+    try {
+        const reviews = await Review.find();
+        res.json(reviews);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch reviews" });
+    }
 });
 
 app.post('/api/analyze', async (req, res) => {
@@ -115,6 +160,9 @@ app.post('/api/analyze', async (req, res) => {
         const jsonStr = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
         const result = JSON.parse(jsonStr);
 
+        // Optionally save the analyzed review to DB here if desired.
+        // For now, adhering to existing behavior (just return analysis).
+
         res.json({
             ...result,
             method: 'Gemini AI (Server)',
@@ -127,7 +175,8 @@ app.post('/api/analyze', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'running', timestamp: new Date(), platform: 'vercel' });
+    const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+    res.json({ status: 'running', database: dbStatus, timestamp: new Date(), platform: 'vercel' });
 });
 
 // Catch-all route to serve the frontend (must be after API routes)
