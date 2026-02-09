@@ -14,7 +14,8 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increased limit for Base64 images
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, '../dist')));
@@ -26,7 +27,7 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log('✅ Connected to MongoDB'))
     .catch(err => console.error('❌ MongoDB connection error:', err));
 
-// Review Schema
+// Schemas
 const reviewSchema = new mongoose.Schema({
     id: Number,
     customerName: String,
@@ -41,7 +42,14 @@ const reviewSchema = new mongoose.Schema({
     keywords: [String]
 });
 
+const settingsSchema = new mongoose.Schema({
+    type: { type: String, default: 'general', unique: true }, // Singleton pattern
+    userPhoto: String,
+    updatedAt: { type: Date, default: Date.now }
+});
+
 const Review = mongoose.model('Review', reviewSchema);
+const Settings = mongoose.model('Settings', settingsSchema);
 
 // Mock database (for seeding)
 const mockReviews = [
@@ -107,6 +115,16 @@ const seedDatabase = async () => {
             await Review.insertMany(mockReviews);
             console.log('🌱 Database seeded with mock reviews');
         }
+
+        // Seed default settings if not exists
+        const settingsCount = await Settings.countDocuments();
+        if (settingsCount === 0) {
+            await Settings.create({
+                type: 'general',
+                userPhoto: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&auto=format&fit=crop&w=100&q=80"
+            });
+            console.log('⚙️ Default settings initialized');
+        }
     } catch (err) {
         console.error('Error seeding database:', err);
     }
@@ -115,6 +133,33 @@ const seedDatabase = async () => {
 mongoose.connection.once('open', seedDatabase);
 
 // Routes
+
+// Settings Routes
+app.get('/api/settings', async (req, res) => {
+    try {
+        const settings = await Settings.findOne({ type: 'general' });
+        res.json(settings || {});
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch settings" });
+    }
+});
+
+app.post('/api/settings', async (req, res) => {
+    try {
+        const { userPhoto } = req.body;
+        const settings = await Settings.findOneAndUpdate(
+            { type: 'general' },
+            { userPhoto, updatedAt: Date.now() },
+            { new: true, upsert: true } // Create if doesn't exist
+        );
+        res.json(settings);
+    } catch (err) {
+        console.error("Settings Update Error:", err);
+        res.status(500).json({ error: "Failed to update settings" });
+    }
+});
+
+// Review Routes
 app.get('/api/reviews', async (req, res) => {
     try {
         const reviews = await Review.find();

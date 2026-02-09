@@ -29,12 +29,21 @@ function App() {
   }, []);
 
 
-  const handlePhotoUpdate = (newPhoto) => {
+  const handlePhotoUpdate = async (newPhoto) => {
     setUserPhoto(newPhoto);
-    localStorage.setItem('userPhoto', newPhoto);
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userPhoto: newPhoto })
+      });
+    } catch (e) {
+      console.error("Failed to save photo to DB:", e);
+    }
   };
 
   useEffect(() => {
+    // Fetch Reviews
     const fetchReviews = async () => {
       try {
         const res = await fetch('/api/reviews');
@@ -46,7 +55,24 @@ function App() {
         console.log("Using local mock data as server is unreachable.");
       }
     };
+
+    // Fetch Settings (Photo)
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.userPhoto) {
+            setUserPhoto(data.userPhoto);
+          }
+        }
+      } catch (e) {
+        console.log("Failed to fetch settings from server.");
+      }
+    };
+
     fetchReviews();
+    fetchSettings();
   }, []);
 
   const handleNavigate = (tab, filter = 'all') => {
