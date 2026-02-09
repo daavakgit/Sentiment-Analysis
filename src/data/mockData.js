@@ -158,7 +158,21 @@ export const mockReviews = [
 ];
 
 export const calculateMetrics = (reviews) => {
+  if (!reviews || !Array.isArray(reviews) || reviews.length === 0) {
+    return {
+      total: 0,
+      positive: 0,
+      negative: 0,
+      neutral: 0,
+      avgRating: "0.0",
+      sentimentScore: 0,
+      categoryPerformance: [],
+      topPositiveKeywords: [],
+      topNegativeKeywords: []
+    };
+  }
   const total = reviews.length;
+
   const positive = reviews.filter(r => r.sentiment === 'positive').length;
   const negative = reviews.filter(r => r.sentiment === 'negative').length;
   const neutral = reviews.filter(r => r.sentiment === 'neutral').length;
@@ -169,32 +183,38 @@ export const calculateMetrics = (reviews) => {
   // Category Analysis
   const categoryStats = {};
   reviews.forEach(r => {
-    r.categories.forEach(cat => {
-      if (!categoryStats[cat]) {
-        categoryStats[cat] = { name: cat, total: 0, positive: 0, negative: 0, sentimentSum: 0 };
-      }
-      categoryStats[cat].total++;
-      categoryStats[cat].sentimentSum += r.score;
-      if (r.sentiment === 'positive') categoryStats[cat].positive++;
-      if (r.sentiment === 'negative') categoryStats[cat].negative++;
-    });
+    if (r.categories && Array.isArray(r.categories)) {
+      r.categories.forEach(cat => {
+        if (!categoryStats[cat]) {
+          categoryStats[cat] = { name: cat, total: 0, positive: 0, negative: 0, sentimentSum: 0 };
+        }
+        categoryStats[cat].total++;
+        categoryStats[cat].sentimentSum += r.score || 0;
+        if (r.sentiment === 'positive') categoryStats[cat].positive++;
+        if (r.sentiment === 'negative') categoryStats[cat].negative++;
+      });
+    }
   });
+
+
 
   const categoryPerformance = Object.values(categoryStats).map(cat => ({
     ...cat,
-    score: Math.round((cat.sentimentSum / cat.total) * 100)
-  })).sort((a, b) => b.score - a.score);
+    score: cat.total > 0 ? Math.round((cat.sentimentSum / cat.total) * 100) : 0
+  })).sort((a, b) => (b.score || 0) - (a.score || 0));
+
 
   // Keyword Analysis (Top 5 Positive & Negative)
   const wordMap = { positive: {}, negative: {} };
   reviews.forEach(r => {
-    if (r.sentiment !== 'neutral') {
+    if (r.sentiment !== 'neutral' && r.keywords && Array.isArray(r.keywords)) {
       r.keywords.forEach(word => {
         if (!wordMap[r.sentiment][word]) wordMap[r.sentiment][word] = 0;
         wordMap[r.sentiment][word]++;
       });
     }
   });
+
 
   const getTopKeywords = (map) => Object.entries(map)
     .sort((a, b) => b[1] - a[1])

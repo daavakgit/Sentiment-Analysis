@@ -59,10 +59,12 @@ function App() {
       <div className="noise-overlay" />
       <div className="grid-bg" />
 
-      <AnimatePresence mode="wait">
-        {isLoading ? (
+      <AnimatePresence mode="popLayout">
+        {isLoading && (
           <Preloader key="loader" />
-        ) : activeTab === 'landing' ? (
+        )}
+
+        {!isLoading && activeTab === 'landing' && (
           <motion.div
             key="landing"
             initial={{ opacity: 0 }}
@@ -72,10 +74,12 @@ function App() {
           >
             <Hero onStart={() => setActiveTab('dashboard')} />
           </motion.div>
-        ) : (
+        )}
+
+        {!isLoading && activeTab !== 'landing' && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
@@ -87,23 +91,23 @@ function App() {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
-                  initial={{ opacity: 0, x: 20 }}
+                  initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  {activeTab === 'dashboard' && <Dashboard reviews={reviews} onNavigate={handleNavigate} />}
-                  {activeTab === 'reviews' && <ReviewList reviews={reviews} initialFilter={reviewFilter} onBack={() => handleNavigate('dashboard')} />}
+                  {activeTab === 'dashboard' && <Dashboard reviews={reviews || []} onNavigate={handleNavigate} />}
+                  {activeTab === 'reviews' && <ReviewList reviews={reviews || []} initialFilter={reviewFilter} onBack={() => handleNavigate('dashboard')} />}
                   {activeTab === 'live-ai' && <LiveAnalysis />}
                   {activeTab === 'settings' && <Settings userPhoto={userPhoto} onUpdatePhoto={handlePhotoUpdate} />}
                   {activeTab === 'trends' && <Trends />}
                 </motion.div>
-
               </AnimatePresence>
             </main>
           </motion.div>
         )}
       </AnimatePresence>
+
 
     </>
   );
