@@ -295,9 +295,9 @@ const Settings = ({ settings, onUpdate }) => {
                                 />
                                 <OptionCard
                                     active={localSettings.theme === 'light'}
-                                    onClick={() => alert('Light mode is coming soon in v2.0!')}
+                                    onClick={() => setLocalSettings({ ...localSettings, theme: 'light' })}
                                     title="Solaris"
-                                    desc="Professional light mode. (Coming Soon)"
+                                    desc="Clean, professional light mode with white backgrounds."
                                     icon={Zap}
                                 />
                             </div>

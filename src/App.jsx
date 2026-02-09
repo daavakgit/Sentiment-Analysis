@@ -26,6 +26,11 @@ function App() {
     notifications: true
   });
 
+  // Apply theme to document root whenever it changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', userSettings.theme);
+  }, [userSettings.theme]);
+
   useEffect(() => {
     const storedAuth = localStorage.getItem('authToken');
     if (storedAuth) {
