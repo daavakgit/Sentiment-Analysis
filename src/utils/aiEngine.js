@@ -9,20 +9,29 @@ const customVocabulary = {
     'tasty': 3, 'delicious': 4, 'yummy': 4, 'stale': -4, 'cold': -3, 'late': -3, 'fast': 3,
     'spicy': 0, 'bland': -3, 'raw': -4, 'premium': 3, 'quantity': 1, 'portion': 0,
     'packaging': 0, 'hygiene': 0, 'hair': -5, 'bug': -5, 'love': 4, 'hate': -4, 'best': 4, 'worst': -4,
-    'bad': -3, 'terrible': -4, 'horrible': -4, 'awful': -4, 'good': 3, 'great': 4, 'excellent': 4, 'average': 0, 'poor': -3
+    'bad': -3, 'terrible': -4, 'horrible': -4, 'awful': -4, 'good': 3, 'great': 4, 'excellent': 4, 'average': 0, 'poor': -3,
+    'salty': -3, 'bitter': -2, 'sour': -1, 'oily': -2, 'greasy': -2, 'dry': -2, 'hard': -2, 'tough': -2,
+    'warm': 2, 'fresh': 3, 'hot': 2, 'crispy': 3, 'soft': 1, 'tender': 3,
+    'burnt': -4, 'undercooked': -4, 'overcooked': -3
 };
 
 const CATEGORIES = {
-    'Food Quality': ['taste', 'tasty', 'delicious', 'yummy', 'stale', 'cold', 'spicy', 'bland', 'raw', 'fresh', 'flavor', 'flavour', 'salt', 'sweet', 'cooked', 'recipe', 'food', 'meal', 'dish', 'curry', 'bread', 'rice', 'rotten', 'sour', 'burnt'],
+    'Food Quality': ['taste', 'tasty', 'delicious', 'yummy', 'stale', 'cold', 'spicy', 'bland', 'raw', 'fresh', 'flavor', 'flavour', 'salt', 'salty', 'sweet', 'cooked', 'recipe', 'food', 'meal', 'dish', 'curry', 'bread', 'rice', 'rotten', 'sour', 'burnt', 'bitter', 'undercooked', 'overcooked', 'dry', 'oily', 'greasy'],
     'Delivery': ['delivery', 'late', 'fast', 'time', 'rider', 'driver', 'arrived', 'reach', 'delayed', 'quick', 'slow', 'tracking', 'earlier'],
     'Packaging': ['package', 'packaging', 'box', 'container', 'leak', 'spill', 'packed', 'bag', 'seal', 'open'],
-    'Service': ['staff', 'polite', 'rude', 'manager', 'waiter', 'service', 'behavior', 'refund', 'support', 'chat', 'help', 'response', 'reply'],
+    'Service': ['staff', 'polite', 'rude', 'manager', 'waiter', 'service', 'behavior', 'refund', 'support', 'chat', 'help', 'response', 'reply', 'attitude'],
     'Value for Money': ['price', 'cost', 'expensive', 'cheap', 'worth', 'value', 'amount', 'quantity', 'portion', 'size', 'money', 'bill']
 };
 
 const localAnalyze = (text) => {
     const result = sentiment.analyze(text, { language: 'en', extras: customVocabulary });
     let normalizedScore = result.comparative;
+
+    // Normalize to -1 to 1 range more aggressively for short texts
+    if (result.words.length < 5 && result.score !== 0) {
+        normalizedScore = result.score > 0 ? 0.8 : -0.8;
+    }
+
     if (normalizedScore > 1) normalizedScore = 1;
     if (normalizedScore < -1) normalizedScore = -1;
 
@@ -35,6 +44,7 @@ const localAnalyze = (text) => {
     else if (result.score < 0) sentimentLabel = 'negative';
 
     const doc = nlp(text);
+    // Get nouns and adjectives, filter short words
     const keywords = [...new Set([...doc.nouns().out('array'), ...doc.adjectives().out('array')])].filter(w => w.length > 2).slice(0, 8);
 
     const detectedCategories = new Set();
@@ -44,10 +54,31 @@ const localAnalyze = (text) => {
     });
 
     const emotions = [];
-    if (tokens.some(t => ['angry', 'worst', 'hate', 'furious'].includes(t))) emotions.push('Anger/Frustration');
-    if (tokens.some(t => ['happy', 'love', 'best', 'great'].includes(t))) emotions.push('Joy/Satisfaction');
-    if (tokens.some(t => ['disappointed', 'bad', 'poor'].includes(t))) emotions.push('Disappointment');
-    if (emotions.length === 0) emotions.push('Neutral');
+
+    // Emotion Keyword Mapping
+    const emotionKeywords = {
+        'Anger/Frustration': ['angry', 'furious', 'mad', 'annoyed', 'irritated', 'ridiculous', 'useless', 'cheat', 'scam'],
+        'Disgust': ['hair', 'bug', 'rotten', 'stale', 'smell', 'dirty', 'filthy', 'insect', 'cockroach', 'sick', 'vomit'],
+        'Joy/Satisfaction': ['happy', 'love', 'best', 'great', 'excellent', 'amazing', 'wonderful', 'perfect', 'tasty', 'delicious', 'yummy', 'fresh', 'wow'],
+        'Disappointment': ['disappointed', 'bad', 'poor', 'worst', 'hate', 'terrible', 'horrible', 'awful', 'bland', 'salty', 'raw', 'cold', 'late', 'waste', 'average', 'dry'],
+        'Surprise': ['shocked', 'surprised', 'unexpected']
+    };
+
+    Object.entries(emotionKeywords).forEach(([emotion, terms]) => {
+        if (terms.some(t => tokens.includes(t))) emotions.push(emotion);
+    });
+
+    // Fallback emotions based on sentiment score if no specific keywords found
+    if (emotions.length === 0) {
+        if (result.score <= -2) emotions.push('Disappointment');
+        else if (result.score < 0) emotions.push('Dissatisfaction');
+        else if (result.score >= 2) emotions.push('Joy/Satisfaction');
+        else if (result.score > 0) emotions.push('Satisfaction');
+        else emotions.push('Neutral');
+    }
+
+    // Ensure strictly unique emotions
+    const uniqueEmotions = [...new Set(emotions)];
 
     return {
         score: result.score,
@@ -59,7 +90,7 @@ const localAnalyze = (text) => {
         negativeWords: result.negative,
         keywords: keywords,
         categories: Array.from(detectedCategories),
-        emotions: emotions,
+        emotions: uniqueEmotions,
         method: 'Local Logic'
     };
 };
