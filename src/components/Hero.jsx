@@ -30,6 +30,25 @@ const Hero = ({ onStart }) => {
             backgroundColor: 'var(--bg-dark)'
         }}>
             {/* Dynamic Background */}
+            <video
+                autoPlay
+                loop
+                playsInline
+                muted
+                className="jsx-63a27d274199709e w-full h-full object-cover [mask-image:linear-gradient(to_bottom,transparent_0%,black_30%,black_70%,transparent_94.5%)] lg:[mask-image:linear-gradient(to_bottom,transparent_0%,black_20%,black_80%,transparent_100%)]"
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 0,
+                    pointerEvents: 'none',
+                    opacity: 0.6
+                }}
+            >
+                media
+            </video>
             <Background3D />
 
             {/* Glow Orbs */}
