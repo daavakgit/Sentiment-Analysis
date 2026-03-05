@@ -34,7 +34,7 @@ const Preloader = () => {
                     opacity: 0.8
                 }}
             >
-                media
+                <source src="/assets/eye.mp4" type="video/mp4" className="jsx-63a27d274199709e" />
             </video>
 
             <motion.div
