@@ -37,22 +37,6 @@ const Preloader = () => {
                 <source src="/assets/eye.mp4" type="video/mp4" className="jsx-63a27d274199709e" />
             </video>
 
-            <motion.div
-                animate={{ opacity: [0.3, 1, 0.3] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-                style={{
-                    position: 'absolute',
-                    bottom: '15%',
-                    color: '#fff',
-                    fontSize: '1.2rem',
-                    letterSpacing: '0.15em',
-                    textTransform: 'uppercase',
-                    zIndex: 10,
-                    textShadow: '0 0 10px rgba(0,0,0,0.8)'
-                }}
-            >
-                Press Enter to Start
-            </motion.div>
         </motion.div>
     );
 };
