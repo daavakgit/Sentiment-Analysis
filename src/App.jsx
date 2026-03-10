@@ -38,15 +38,11 @@ function App() {
       setActiveTab('dashboard');
     }
 
-    const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
-        setIsLoading(false);
-        window.removeEventListener('keydown', handleKeyDown);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2500);
 
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
